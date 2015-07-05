@@ -16,7 +16,7 @@ module.exports = $.Screen({
     }
 }).extend({
     draw: function (ctx) {
-        ctx.fillStyle = '#f1f1f1';
+        ctx.fillStyle = '#fafafa';
         ctx.fillRect(0, 0,
             $.canvas.width,
             $.canvas.height

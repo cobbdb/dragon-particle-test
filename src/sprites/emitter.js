@@ -6,7 +6,7 @@ var $ = require('dragonjs');
  */
 module.exports = $.particle.Emitter({
     type: $.particle.Square,
-    pos: $.Point($.canvas.center),
+    pos: $.canvas.center,
     style: function (ctx) {
         ctx.fillStyle = 'yellow';
     }
