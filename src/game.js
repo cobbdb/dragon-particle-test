@@ -1,11 +1,8 @@
 var $ = require('dragonjs');
 
-$.addFont('ExFont', {
-    src: 'ex-font.TTF'
+$.loadAssets(function () {
+    $.debug();
+    $.addScreens([
+        require('./screens/stage.js')
+    ]);
 });
-
-$.start(function () {
-    return [
-        require('./screens/ex1.js')
-    ];
-}, false);
