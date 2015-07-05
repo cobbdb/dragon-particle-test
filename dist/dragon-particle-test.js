@@ -4371,8 +4371,12 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     };
                     count += dir.img.length;
                     count += dir.sound.length;
-                    dir.img.forEach(this.add.image);
-                    dir.sound.forEach(this.add.sound);
+                    if (count) {
+                        dir.img.forEach(this.add.image);
+                        dir.sound.forEach(this.add.sound);
+                    } else {
+                        oncomplete();
+                    }
                 }
             },
             get ready() {
@@ -4421,8 +4425,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         module.exports = function(opts) {
             var pos = opts.pos || Point(), size = opts.size || Dimension(), scale = opts.scale || 1, adjsize = size.multiply(Dimension(scale, scale));
             opts = Util.mergeDefaults(opts, {
-                name: "dragon-sprite",
-                kind: "dragon-sprite",
+                name: "dragon-clear-sprite",
+                kind: "dragon-clear-sprite",
                 mask: Rectangle(),
                 updating: false,
                 drawing: false,
@@ -5596,6 +5600,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js");
         module.exports = function(owner, opts) {
             opts = Util.mergeDefaults(opts, {
+                name: "dragon-particle",
+                kind: "dragon-particle",
                 speed: Vector(random() * 4 - 2, random() * 4 - 2),
                 gravity: 0,
                 style: function() {}
@@ -5632,9 +5638,13 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     } ],
     40: [ function(require, module, exports) {
         (function(global) {
-            var Collection = require("../collection.js");
+            var Collection = require("../collection.js"), Util = require("../util/object.js");
             module.exports = function(opts) {
                 var hash;
+                opts = Util.mergeDefaults(opts, {
+                    name: "dragon-emitter",
+                    kind: "dragon-emitter"
+                });
                 function step() {
                     var i, len = 5, set = [];
                     for (i = 0; i < len; i += 1) {
@@ -5654,7 +5664,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             };
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
-        "../collection.js": 14
+        "../collection.js": 14,
+        "../util/object.js": 49
     } ],
     41: [ function(require, module, exports) {
         var Particle = require("./base.js");
@@ -5749,8 +5760,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     }
                 }
                 opts = Util.mergeDefaults(opts, {
-                    name: "dragon-texture-sprite",
-                    kind: "dragon-texture-sprite",
+                    name: "dragon-sprite",
+                    kind: "dragon-sprite",
                     startingStrip: opts.startingStrip || global.Object.keys(stripMap)[0]
                 });
                 opts.size = opts.size || (stripMap[opts.startingStrip] || {}).size;
@@ -5966,28 +5977,39 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     } ],
     53: [ function(require, module, exports) {
         var $ = require("dragonjs");
-        module.exports = function(opts) {
-            return $.Screen({
-                name: "stage",
-                sprites: [ require("../sprites/emitter.js") ],
-                one: {
-                    ready: function() {
-                        this.start();
-                    }
+        module.exports = $.Screen({
+            name: "stage",
+            sprites: [ require("../sprites/emitter.js") ],
+            one: {
+                ready: function() {
+                    this.start();
                 }
-            });
-        };
+            }
+        }).extend({
+            draw: function(ctx) {
+                ctx.fillStyle = "#f1f1f1";
+                ctx.fillRect(0, 0, $.canvas.width, $.canvas.height);
+                this.base.draw(ctx);
+            }
+        });
     }, {
         "../sprites/emitter.js": 54,
         dragonjs: 17
     } ],
     54: [ function(require, module, exports) {
         var $ = require("dragonjs");
-        module.exports = $.particle.Emmiter({
+        module.exports = $.particle.Emitter({
             type: $.particle.Square,
             pos: $.Point($.canvas.center),
             style: function(ctx) {
                 ctx.fillStyle = "yellow";
+            }
+        }).extend({
+            update: function() {
+                this.base.update();
+            },
+            draw: function(ctx) {
+                this.base.draw(ctx);
             }
         });
     }, {
