@@ -1,0 +1,7 @@
+{
+  "name": "dragon-particle-test",
+  "main": "dist/dragon-particle-test.min.js",
+  "dependencies": {
+    "cocoonjs-plugins": "~3.0.5"
+  }
+}
