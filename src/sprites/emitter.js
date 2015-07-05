@@ -10,11 +10,4 @@ module.exports = $.particle.Emitter({
     style: function (ctx) {
         ctx.fillStyle = 'yellow';
     }
-}).extend({
-    update: function () {
-        this.base.update();
-    },
-    draw: function (ctx) {
-        this.base.draw(ctx);
-    }
 });

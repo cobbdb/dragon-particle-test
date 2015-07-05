@@ -4281,14 +4281,13 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         return this.frame;
                     },
                     draw: function(ctx, pos, scale, rotation) {
-                        var finalSize, offset = this.frame * this.size.width;
+                        var size = this.size(), offset = this.frame * size.width;
                         scale = scale || Dimension(1, 1);
                         rotation = rotation || 0;
-                        finalSize = Dimension(this.size.width * scale.width, this.size.height * scale.height);
                         ctx.save();
-                        ctx.translate(pos.x + finalSize.width / 2, pos.y + finalSize.height / 2);
+                        ctx.translate(pos.x + size.width / 2, pos.y + size.height / 2);
                         ctx.rotate(rotation);
-                        ctx.drawImage(img, firstFrame.x + offset, firstFrame.y, this.size.width, this.size.height, -finalSize.width / 2, -finalSize.height / 2, finalSize.width, finalSize.height);
+                        ctx.drawImage(img, firstFrame.x + offset, firstFrame.y, size.width, size.height, -size.width / 2, -size.height / 2, size.width, size.height);
                         ctx.restore();
                     }
                 };
@@ -5597,12 +5596,13 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../io/mouse.js": 34
     } ],
     39: [ function(require, module, exports) {
-        var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js");
+        var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js");
         module.exports = function(owner, opts) {
             opts = Util.mergeDefaults(opts, {
                 name: "dragon-particle",
                 kind: "dragon-particle",
                 speed: Vector(random() * 4 - 2, random() * 4 - 2),
+                size: Dimension(10, 10),
                 gravity: 0,
                 style: function() {}
             });
@@ -5611,6 +5611,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 gravity: opts.gravity,
                 update: function() {
                     this.rotation += this.rotSpeed;
+                    this.rotation %= 6.283;
                     this.speed.y += this.gravity;
                     this.base.update();
                     if (!this.onscreen()) {
@@ -5618,9 +5619,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         owner.remove(this);
                     }
                 },
-                setupDraw: function(ctx) {
+                predraw: function(ctx) {
                     ctx.save();
-                    ctx.translate(this.pos.x + this.size().width / 2, this.pos.y + this.size().height / 2);
                     ctx.rotate(this.rotation);
                     opts.style(ctx);
                 },
@@ -5631,6 +5631,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         };
     }, {
         "../clear-sprite.js": 13,
+        "../geom/dimension.js": 22,
         "../geom/vector.js": 27,
         "../io/canvas.js": 32,
         "../util/object.js": 49,
@@ -5672,7 +5673,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         module.exports = function(opts) {
             return Particle(opts).extend({
                 draw: function(ctx) {
-                    this.setupDraw(ctx);
+                    this.predraw(ctx);
                     ctx.fillRect(this.pos.x, this.pos.y, this.size().width, this.size().height);
                     this.base.draw(ctx);
                 }
@@ -6003,13 +6004,6 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             pos: $.Point($.canvas.center),
             style: function(ctx) {
                 ctx.fillStyle = "yellow";
-            }
-        }).extend({
-            update: function() {
-                this.base.update();
-            },
-            draw: function(ctx) {
-                this.base.draw(ctx);
             }
         });
     }, {
