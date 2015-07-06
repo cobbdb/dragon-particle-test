@@ -5,6 +5,7 @@
  * @extends Dragon.Sprite
  */
 module.exports = $.particle.Emitter({
+    name: 'burst',
     type: $.particle.Square,
     pos: $.canvas.center.subtract(
         $.Point(120, 0)

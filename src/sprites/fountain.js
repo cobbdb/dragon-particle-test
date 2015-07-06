@@ -5,6 +5,7 @@ var $ = require('dragonjs');
  * @extends Dragon.Sprite
  */
 module.exports = $.particle.Emitter({
+    name: 'fountain',
     type: $.particle.Square,
     pos: $.canvas.center.add(
         $.Point(120, 0)
