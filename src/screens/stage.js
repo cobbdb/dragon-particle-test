@@ -7,7 +7,8 @@ var $ = require('dragonjs');
 module.exports = $.Screen({
     name: 'stage',
     sprites: [
-        require('../sprites/emitter.js')
+        //require('../sprites/fountain.js'),
+        require('../sprites/burst.js')
     ],
     one: {
         ready: function () {
