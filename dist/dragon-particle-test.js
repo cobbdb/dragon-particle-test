@@ -4478,7 +4478,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     ctx.globalAlpha = this.alpha;
                 },
                 move: function(pos) {
-                    this.pos.move(pos, true);
+                    this.pos = this.pos.move(pos);
                     if (!opts.freemask) {
                         this.base.move(this.pos);
                     }
@@ -5604,38 +5604,45 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         (function(global) {
             var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), Point = require("../geom/point.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js"), timer = require("../util/timer.js");
             module.exports = function(owner, opts) {
-                var doFade = false, opts = Util.mergeDefaults(opts, {
+                var doFade = false, homePos = opts.pos.clone();
+                opts = Util.mergeDefaults(opts, {
                     name: "dragon-particle",
                     kind: "dragon-particle",
                     speed: Vector(random() - .5, random() - .5),
                     size: Dimension(10, 10),
                     gravity: 0,
-                    lifespan: 2e3,
+                    lifespan: 1e3,
                     style: function() {}
                 });
                 opts.lifespan += random() * 150;
                 return ClearSprite(opts).extend({
                     _create: function() {
+                        this.stop();
                         timer.setTimeout(function() {
                             doFade = true;
                         }, opts.lifespan);
+                    },
+                    reset: function() {
+                        this.stop();
+                        this.alpha = 1;
+                        this.rotation = 0;
+                        this.move(homePos);
                     },
                     rotSpeed: random() * .4 - .2,
                     gravity: opts.gravity,
                     update: function() {
                         if (this.alpha > 0) {
                             if (doFade) {
-                                this.alpha -= .03;
+                                this.alpha -= .05;
                                 this.alpha = global.Math.max(0, this.alpha);
                             }
                             this.rotation += this.rotSpeed;
                             this.rotation %= global.Math.PI * 2;
                             this.speed.y += this.gravity;
-                            this.base.update();
                         } else {
-                            this.stop();
-                            owner.remove(this);
+                            owner.reclaim(this);
                         }
+                        this.base.update();
                     },
                     predraw: function(ctx) {
                         this.base.draw(ctx);
@@ -5663,41 +5670,40 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     40: [ function(require, module, exports) {
         var Collection = require("../collection.js"), Point = require("../geom/point.js"), Util = require("../util/object.js"), canvas = require("../io/canvas.js"), timer = require("../util/timer.js");
         module.exports = function(opts) {
-            var hash;
+            var hash, bank = [];
             opts = Util.mergeDefaults(opts, {
                 name: "dragon-emitter",
                 kind: "dragon-emitter",
                 pos: Point(),
                 speed: 250,
-                volume: 4
+                volume: 4,
+                particle: {}
             });
+            opts.particle.pos = opts.pos.clone();
             function step() {
-                var i, set = [];
-                for (i = 0; i < this.volume; i += 1) {
-                    set.push(opts.type(this, {
-                        pos: opts.pos.clone(),
-                        style: opts.style,
-                        lifespan: opts.lifespan,
-                        gravity: opts.gravity
-                    }));
-                }
+                var set = bank.splice(0, this.volume);
                 this.add(set);
-                console.debug(this.set.length);
             }
             return Collection(opts).extend({
                 speed: opts.speed,
                 volume: opts.volume,
                 _create: function() {
+                    var i;
+                    for (i = 0; i < 100; i += 1) {
+                        bank.push(opts.type(this, opts.particle));
+                    }
                     if (this.speed) {
                         hash = timer.setInterval(step, this.speed, this);
                     }
-                    timer.setInterval(function() {
-                        console.debug(this.set.length);
-                    }, 250, this);
                     step.call(this);
                 },
                 kill: function() {
                     timer.clearInterval(hash);
+                },
+                reclaim: function(particle) {
+                    particle.reset();
+                    this.remove(particle);
+                    bank.push(particle);
                 }
             });
         };
@@ -6042,6 +6048,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                                 dormantIntervals.push(entry);
                             }
                         });
+                        console.debug("processing intervals");
                         intervals = dormantIntervals.concat(intervalsToAdd);
                         intervalsToAdd = [];
                         timeLastUpdate = now;
@@ -6086,7 +6093,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         var $ = require("dragonjs");
         module.exports = $.Screen({
             name: "stage",
-            sprites: [ require("../sprites/burst.js") ],
+            sprites: [ require("../sprites/fountain.js") ],
             one: {
                 ready: function() {
                     this.start();
@@ -6100,19 +6107,21 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         });
     }, {
-        "../sprites/burst.js": 55,
+        "../sprites/fountain.js": 55,
         dragonjs: 17
     } ],
     55: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.particle.Emitter({
             type: $.particle.Square,
-            pos: $.canvas.center.subtract($.Point(120, 0)),
-            style: function(ctx) {
-                ctx.fillStyle = "red";
-            },
-            speed: 3e3,
-            lifespan: 1e3
+            pos: $.canvas.center.add($.Point(120, 0)),
+            particle: {
+                style: function(ctx) {
+                    ctx.fillStyle = "#3114eb";
+                },
+                gravity: .03,
+                volume: 8
+            }
         });
     }, {
         dragonjs: 17
