@@ -8,6 +8,6 @@ module.exports = $.particle.Emitter({
     type: $.particle.Square,
     pos: $.canvas.center,
     style: function (ctx) {
-        ctx.fillStyle = 'yellow';
+        ctx.fillStyle = '#3114eb';
     }
 });

@@ -5012,28 +5012,28 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     target.y = pos.y;
                     return target;
                 },
-                multiply: function(scale, shallow) {
+                multiply: function(factor, shallow) {
                     var target = shallow ? this : this.clone();
-                    target.x *= scale.x;
-                    target.y *= scale.y;
+                    target.x *= factor.x;
+                    target.y *= factor.y;
                     return target;
                 },
-                divide: function(scale, shallow) {
+                divide: function(factor, shallow) {
                     var target = shallow ? this : this.clone();
-                    target.x /= scale.x;
-                    target.y /= scale.y;
+                    target.x /= factor.x;
+                    target.y /= factor.y;
                     return target;
                 },
-                add: function(scale, shallow) {
+                add: function(offset, shallow) {
                     var target = shallow ? this : this.clone();
-                    target.x += scale.x;
-                    target.y += scale.y;
+                    target.x += offset.x;
+                    target.y += offset.y;
                     return target;
                 },
-                subtract: function(scale, shallow) {
+                subtract: function(offset, shallow) {
                     var target = shallow ? this : this.clone();
-                    target.x -= scale.x;
-                    target.y -= scale.y;
+                    target.x -= offset.x;
+                    target.y -= offset.y;
                     return target;
                 }
             };
@@ -5603,9 +5603,17 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     speed: Vector(random() * 4 - 2, random() * 4 - 2),
                     size: Dimension(10, 10),
                     gravity: 0,
+                    lifespan: 5,
                     style: function() {}
                 });
+                function destroy() {
+                    this.stop();
+                    owner.remove(this);
+                }
                 return ClearSprite(opts).extend({
+                    _create: function() {
+                        global.setTimeout(destroy.bind(this), opts.lifespan * 1e3);
+                    },
                     rotSpeed: random() * .4 - .2,
                     gravity: opts.gravity,
                     update: function() {
@@ -5613,14 +5621,12 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         this.rotation %= global.Math.PI * 2;
                         this.speed.y += this.gravity;
                         this.base.update();
-                        if (!this.onscreen()) {
-                            this.stop();
-                            owner.remove(this);
-                        }
                     },
                     predraw: function(ctx) {
                         ctx.save();
-                        ctx.translate(100, 100);
+                        ctx.translate(this.pos.x + this.size().width / 2, this.pos.y + this.size().height / 2);
+                        ctx.rotate(this.rotation);
+                        opts.style(ctx);
                     },
                     draw: function(ctx) {
                         ctx.restore();
@@ -5654,6 +5660,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                             style: style
                         }));
                     }
+                    console.debug("	>", this.set.length);
                     this.add(set);
                 }
                 return Collection(opts).extend({
@@ -5678,7 +5685,6 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             return Particle(owner, opts).extend({
                 draw: function(ctx) {
                     this.predraw(ctx);
-                    ctx.fillStyle = "#333";
                     ctx.fillRect(-this.size().width / 2, -this.size().height / 2, this.size().width, this.size().height);
                     this.base.draw(ctx);
                 },
@@ -5943,7 +5949,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     }, {} ],
     50: [ function(require, module, exports) {
         (function(global) {
-            var i, len = 50, set = [], curr = 0;
+            var i, len = 200, set = [], curr = 0;
             for (i = 0; i < len; i += 1) {
                 set.push(global.Math.random());
             }
@@ -6005,7 +6011,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         }).extend({
             draw: function(ctx) {
-                ctx.fillStyle = "#fafafa";
+                ctx.fillStyle = "#fdfdfd";
                 ctx.fillRect(0, 0, $.canvas.width, $.canvas.height);
                 this.base.draw(ctx);
             }
@@ -6020,7 +6026,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             type: $.particle.Square,
             pos: $.canvas.center,
             style: function(ctx) {
-                ctx.fillStyle = "yellow";
+                ctx.fillStyle = "#3114eb";
             }
         });
     }, {
