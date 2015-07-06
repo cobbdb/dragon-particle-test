@@ -4443,6 +4443,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
             return CollisionItem(opts).extend({
                 pos: pos,
+                alpha: opts.alpha || 1,
                 scale: function(newval) {
                     if (newval) {
                         scale = newval;
@@ -4472,6 +4473,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         this.shift();
                     }
                     this.base.update();
+                },
+                draw: function(ctx) {
+                    ctx.globalAlpha = this.alpha;
                 },
                 move: function(pos) {
                     this.pos.move(pos, true);
@@ -4725,6 +4729,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             Polar: require("./geom/polar.js"),
             FrameCounter: require("./util/frame-counter.js"),
             IdCounter: require("./util/id-counter.js"),
+            timer: require("./util/timer.js"),
             random: require("./util/random.js"),
             range: SetUtil.range,
             shuffle: SetUtil.shuffle,
@@ -4791,7 +4796,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./util/id-counter.js": 48,
         "./util/object.js": 49,
         "./util/random.js": 50,
-        "./util/set.js": 51
+        "./util/set.js": 51,
+        "./util/timer.js": 52
     } ],
     18: [ function(require, module, exports) {
         var CollisionHandler = require("./collision-handler.js");
@@ -4833,7 +4839,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./mask/screentap.js": 38
     } ],
     20: [ function(require, module, exports) {
-        var FrameCounter = require("./util/frame-counter.js"), Collection = require("./collection.js"), ctx = require("./io/canvas.js").ctx, collisions = require("./dragon-collisions.js"), masks = require("./dragon-masks.js");
+        var FrameCounter = require("./util/frame-counter.js"), Collection = require("./collection.js"), timer = require("./util/timer.js"), ctx = require("./io/canvas.js").ctx, collisions = require("./dragon-collisions.js"), masks = require("./dragon-masks.js");
         module.exports = Collection({
             name: "dragon-game"
         }).extend({
@@ -4844,6 +4850,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             update: function() {
                 masks.update();
                 this.base.update();
+                timer.update();
                 collisions.handleCollisions();
             },
             draw: function() {
@@ -4873,7 +4880,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./dragon-collisions.js": 18,
         "./dragon-masks.js": 19,
         "./io/canvas.js": 32,
-        "./util/frame-counter.js": 47
+        "./util/frame-counter.js": 47,
+        "./util/timer.js": 52
     } ],
     21: [ function(require, module, exports) {
         (function(global) {
@@ -5390,97 +5398,96 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         };
     }, {} ],
     34: [ function(require, module, exports) {
-        (function(global) {
-            var Point = require("../geom/point.js"), Vector = require("../geom/vector.js"), canvas = require("./canvas.js"), dragStart = null, isDown = false, isDragging = false, isHolding = false, current = Point(), last = Point(), shift = Vector(), startEventName, moveEventName, endEventName;
+        var Point = require("../geom/point.js"), Vector = require("../geom/vector.js"), canvas = require("./canvas.js"), timer = require("../util/timer.js"), dragStart = null, isDown = false, isDragging = false, isHolding = false, current = Point(), last = Point(), shift = Vector(), startEventName, moveEventName, endEventName;
+        if (canvas.mobile) {
+            startEventName = "touchstart";
+            moveEventName = "touchmove";
+            endEventName = "touchend";
+        } else {
+            startEventName = "mousedown";
+            moveEventName = "mousemove";
+            endEventName = "mouseup";
+        }
+        function getOffset(event) {
             if (canvas.mobile) {
-                startEventName = "touchstart";
-                moveEventName = "touchmove";
-                endEventName = "touchend";
-            } else {
-                startEventName = "mousedown";
-                moveEventName = "mousemove";
-                endEventName = "mouseup";
+                return Point(event.touches[0].clientX, event.touches[0].clientY);
             }
-            function getOffset(event) {
-                if (canvas.mobile) {
-                    return Point(event.touches[0].clientX, event.touches[0].clientY);
+            return Point(event.offsetX, event.offsetY);
+        }
+        canvas.addEventListener(startEventName, function(event) {
+            isDown = true;
+            current = getOffset(event);
+            timer.setTimeout(function() {
+                if (isDown) {
+                    isHolding = true;
                 }
-                return Point(event.offsetX, event.offsetY);
+            }, 200);
+        });
+        document.addEventListener(endEventName, function(event) {
+            isDown = isDragging = isHolding = false;
+            dragStart = null;
+        });
+        canvas.addEventListener(moveEventName, function(event) {
+            last = current;
+            current = getOffset(event);
+            if (isDown && !isDragging) {
+                shift.x = current.x - last.x;
+                shift.y = current.y - last.y;
+                if (shift.magnitude > 1) {
+                    isDragging = true;
+                    dragStart = current;
+                }
             }
-            canvas.addEventListener(startEventName, function(event) {
-                isDown = true;
-                current = getOffset(event);
-                global.setTimeout(function() {
-                    if (isDown) {
-                        isHolding = true;
-                    }
-                }, 200);
-            });
-            document.addEventListener(endEventName, function(event) {
-                isDown = isDragging = isHolding = false;
-                dragStart = null;
-            });
-            canvas.addEventListener(moveEventName, function(event) {
-                last = current;
-                current = getOffset(event);
-                if (isDown && !isDragging) {
-                    shift.x = current.x - last.x;
-                    shift.y = current.y - last.y;
-                    if (shift.magnitude > 1) {
-                        isDragging = true;
-                        dragStart = current;
-                    }
+        });
+        module.exports = {
+            is: {
+                get down() {
+                    return isDown;
+                },
+                get dragging() {
+                    return isDragging;
+                },
+                get holding() {
+                    return isHolding;
                 }
-            });
-            module.exports = {
-                is: {
-                    get down() {
-                        return isDown;
-                    },
-                    get dragging() {
-                        return isDragging;
-                    },
-                    get holding() {
-                        return isHolding;
-                    }
+            },
+            get offset() {
+                return current;
+            },
+            get dragStart() {
+                return dragStart;
+            },
+            on: {
+                down: function(cb, thisArg) {
+                    canvas.addEventListener(startEventName, cb.bind(thisArg));
                 },
-                get offset() {
-                    return current;
+                click: function(cb, thisArg) {},
+                dclick: function(cb, thisArg) {},
+                up: function(cb, thisArg) {
+                    document.addEventListener(endEventName, cb.bind(thisArg));
                 },
-                get dragStart() {
-                    return dragStart;
+                move: function(cb, thisArg) {
+                    canvas.addEventListener(moveEventName, cb.bind(thisArg));
                 },
-                on: {
-                    down: function(cb, thisArg) {
-                        canvas.addEventListener(startEventName, cb.bind(thisArg));
-                    },
-                    click: function(cb, thisArg) {},
-                    dclick: function(cb, thisArg) {},
-                    up: function(cb, thisArg) {
-                        document.addEventListener(endEventName, cb.bind(thisArg));
-                    },
-                    move: function(cb, thisArg) {
-                        canvas.addEventListener(moveEventName, cb.bind(thisArg));
-                    },
-                    drag: function(cb, thisArg) {
-                        canvas.addEventListener(moveEventName, function() {
-                            if (isDragging) {
-                                cb.call(thisArg);
-                            }
-                        });
-                    },
-                    swipe: function(dir, cb, thisArg) {}
+                drag: function(cb, thisArg) {
+                    canvas.addEventListener(moveEventName, function() {
+                        if (isDragging) {
+                            cb.call(thisArg);
+                        }
+                    });
                 },
-                eventName: {
-                    start: startEventName,
-                    move: moveEventName,
-                    end: endEventName
-                }
-            };
-        }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
+                swipe: function(dir, cb, thisArg) {}
+            },
+            eventName: {
+                start: startEventName,
+                move: moveEventName,
+                end: endEventName
+            }
+        };
     }, {
         "../geom/point.js": 23,
         "../geom/vector.js": 27,
+        "../util/timer.js": 52,
         "./canvas.js": 32
     } ],
     35: [ function(require, module, exports) {
@@ -5595,34 +5602,41 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     } ],
     39: [ function(require, module, exports) {
         (function(global) {
-            var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), Point = require("../geom/point.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js");
+            var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), Point = require("../geom/point.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js"), timer = require("../util/timer.js");
             module.exports = function(owner, opts) {
-                opts = Util.mergeDefaults(opts, {
+                var doFade = false, opts = Util.mergeDefaults(opts, {
                     name: "dragon-particle",
                     kind: "dragon-particle",
-                    speed: Vector(random() * 4 - 2, random() * 4 - 2),
+                    speed: Vector(random() - .5, random() - .5),
                     size: Dimension(10, 10),
                     gravity: 0,
-                    lifespan: 5,
+                    lifespan: 2,
                     style: function() {}
                 });
-                function destroy() {
-                    this.stop();
-                    owner.remove(this);
+                function fadeOut() {
+                    doFade = true;
+                    timer.setTimeout(function() {
+                        this.stop();
+                        owner.remove(this);
+                    }, 500, this);
                 }
                 return ClearSprite(opts).extend({
                     _create: function() {
-                        global.setTimeout(destroy.bind(this), opts.lifespan * 1e3);
+                        timer.setTimeout(fadeOut, opts.lifespan * 1e3, this);
                     },
                     rotSpeed: random() * .4 - .2,
                     gravity: opts.gravity,
                     update: function() {
+                        if (doFade) {
+                            this.alpha -= .02;
+                        }
                         this.rotation += this.rotSpeed;
                         this.rotation %= global.Math.PI * 2;
                         this.speed.y += this.gravity;
                         this.base.update();
                     },
                     predraw: function(ctx) {
+                        this.base.draw(ctx);
                         ctx.save();
                         ctx.translate(this.pos.x + this.size().width / 2, this.pos.y + this.size().height / 2);
                         ctx.rotate(this.rotation);
@@ -5641,32 +5655,37 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../geom/vector.js": 27,
         "../io/canvas.js": 32,
         "../util/object.js": 49,
-        "../util/random.js": 50
+        "../util/random.js": 50,
+        "../util/timer.js": 52
     } ],
     40: [ function(require, module, exports) {
         (function(global) {
-            var Collection = require("../collection.js"), Util = require("../util/object.js"), canvas = require("../io/canvas.js");
+            var Collection = require("../collection.js"), Point = require("../geom/point.js"), Util = require("../util/object.js"), canvas = require("../io/canvas.js"), timer = require("../util/timer.js");
             module.exports = function(opts) {
-                var hash, Factory = opts.type, pos = opts.pos || Point(), style = opts.style || function() {};
+                var hash;
                 opts = Util.mergeDefaults(opts, {
                     name: "dragon-emitter",
-                    kind: "dragon-emitter"
+                    kind: "dragon-emitter",
+                    style: function() {},
+                    pos: Point(),
+                    speed: 4,
+                    volume: 4
                 });
                 function step() {
-                    var i, len = 5, set = [];
-                    for (i = 0; i < len; i += 1) {
-                        set.push(Factory(this, {
-                            pos: canvas.center.clone(),
-                            style: style
+                    var i, set = [];
+                    for (i = 0; i < this.volume; i += 1) {
+                        set.push(opts.type(this, {
+                            pos: opts.pos.clone(),
+                            style: opts.style
                         }));
                     }
-                    console.debug("	>", this.set.length);
                     this.add(set);
                 }
                 return Collection(opts).extend({
-                    speed: opts.speed || 4,
+                    speed: opts.speed,
+                    volume: opts.volume,
                     _create: function() {
-                        hash = global.setInterval(step.bind(this), 1e3 / this.speed);
+                        hash = timer.setInterval(step.bind(this), 1e3 / this.speed);
                     },
                     kill: function() {
                         global.clearInterval(hash);
@@ -5676,8 +5695,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
         "../collection.js": 14,
+        "../geom/point.js": 23,
         "../io/canvas.js": 32,
-        "../util/object.js": 49
+        "../util/object.js": 49,
+        "../util/timer.js": 52
     } ],
     41: [ function(require, module, exports) {
         var Particle = require("./base.js");
@@ -5811,8 +5832,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         this.base.update();
                     },
                     draw: function(ctx) {
-                        this.strip.draw(ctx, this.pos, Dimension(this.size().width / this.strip.size.width, this.size().height / this.strip.size.height), this.rotation);
                         this.base.draw(ctx);
+                        this.strip.draw(ctx, this.pos, Dimension(this.size().width / this.strip.size.width, this.size().height / this.strip.size.height), this.rotation);
                     }
                 });
             };
@@ -5990,16 +6011,75 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./random.js": 50
     } ],
     52: [ function(require, module, exports) {
+        (function(global) {
+            var Item = require("../item.js"), Counter = require("./id-counter.js");
+            var timeLastSecond = global.Date.now(), clearSet = {}, timeouts = [], intervals = [];
+            module.exports = Item().extend({
+                update: function() {
+                    var now = global.Date.now(), diff = now - timeLastSecond, filteredTimeouts = [], filteredIntervals = [], hash;
+                    if (diff >= 1e3) {
+                        timeouts.forEach(function(entry) {
+                            entry.life -= diff;
+                            if (entry.life <= 0) {
+                                entry.event();
+                            } else {
+                                filteredTimeouts.push(entry);
+                            }
+                        });
+                        timeouts = filteredTimeouts;
+                        intervals.forEach(function(entry) {
+                            entry.life -= diff;
+                            hash = entry.id;
+                            if (entry.life <= 0) {
+                                entry.event();
+                                entry.life = entry.delay;
+                            }
+                            if (hash in clearSet) {
+                                clearSet[hash] = false;
+                            } else {
+                                filteredIntervals.push(entry);
+                            }
+                        });
+                        intervals = filteredIntervals;
+                        timeLastSecond = now;
+                    }
+                },
+                setTimeout: function(cb, delay, thisArg) {
+                    timeouts.push({
+                        event: cb.bind(thisArg),
+                        life: delay
+                    });
+                },
+                setInterval: function(cb, delay, thisArg) {
+                    var hash = Counter.nextId;
+                    intervals.push({
+                        event: cb.bind(thisArg),
+                        life: delay,
+                        delay: delay,
+                        id: hash
+                    });
+                    return hash;
+                },
+                clearInterval: function(hash) {
+                    clearSet[hash] = true;
+                }
+            });
+        }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
+    }, {
+        "../item.js": 35,
+        "./id-counter.js": 48
+    } ],
+    53: [ function(require, module, exports) {
         var $ = require("dragonjs");
         $.loadAssets(function() {
             $.debug();
             $.addScreens([ require("./screens/stage.js") ]);
         });
     }, {
-        "./screens/stage.js": 53,
+        "./screens/stage.js": 54,
         dragonjs: 17
     } ],
-    53: [ function(require, module, exports) {
+    54: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.Screen({
             name: "stage",
@@ -6017,10 +6097,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         });
     }, {
-        "../sprites/emitter.js": 54,
+        "../sprites/emitter.js": 55,
         dragonjs: 17
     } ],
-    54: [ function(require, module, exports) {
+    55: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.particle.Emitter({
             type: $.particle.Square,
@@ -6032,4 +6112,4 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     }, {
         dragonjs: 17
     } ]
-}, {}, [ 52 ]);
+}, {}, [ 53 ]);
