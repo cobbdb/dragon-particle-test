@@ -4502,10 +4502,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./util/object.js": 49
     } ],
     14: [ function(require, module, exports) {
-        var Item = require("./item.js"), Util = require("./util/object.js");
+        var Item = require("./item.js"), Obj = require("./util/object.js");
         module.exports = function(opts) {
             var removed = false;
-            opts = Util.mergeDefaults(opts, {
+            opts = Obj.mergeDefaults(opts, {
                 name: "dragon-collection",
                 kind: "dragon-collection"
             });
@@ -4548,6 +4548,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 draw: function(ctx) {
                     this.set.forEach(function(item) {
                         if (this.drawing && item.drawing && !item.removed) {
+                            ctx.globalAlpha = 1;
                             item.draw(ctx);
                         }
                     }, this);
@@ -4559,14 +4560,11 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         }
                     }, this);
                     if (removed) {
-                        this.cleanup();
+                        this.set = this.set.filter(function(item) {
+                            return !item.removed;
+                        });
                         removed = false;
                     }
-                },
-                cleanup: function() {
-                    this.set = this.set.filter(function(item) {
-                        return !item.removed;
-                    });
                 }
             });
         };
@@ -4929,7 +4927,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     draw: function(ctx) {
                         ctx.beginPath();
                         ctx.lineWidth = 1;
-                        ctx.strokeStyle = "rgba(250, 50, 50, 0.5)";
+                        ctx.globalAlpha = .5;
+                        ctx.strokeStyle = "#f55";
                         ctx.arc(this.x, this.y, this.radius, 0, 2 * Math.PI);
                         ctx.stroke();
                     },
@@ -5138,7 +5137,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 draw: function(ctx) {
                     ctx.beginPath();
                     ctx.lineWidth = 1;
-                    ctx.strokeStyle = "rgba(250, 50, 50, 0.5)";
+                    ctx.globalAlpha = .5;
+                    ctx.strokeStyle = "#f55";
                     ctx.rect(this.x, this.y, this.width, this.height);
                     ctx.stroke();
                 }
@@ -5626,7 +5626,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     style: function() {},
                     on: {}
                 });
-                opts.lifespan += random() * 150;
+                opts.lifespan += random() * 250;
                 opts.on.ready = function() {
                     this.start();
                     timer.setTimeout(function() {
@@ -5929,28 +5929,33 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         module.exports = "ontouchstart" in window;
     }, {} ],
     47: [ function(require, module, exports) {
-        var timeSinceLastSecond = frameCountThisSecond = frameRate = 0, timeLastFrame = Date.now();
-        module.exports = {
-            countFrame: function() {
-                var timeThisFrame = Date.now(), elapsedTime = timeThisFrame - timeLastFrame;
-                frameCountThisSecond += 1;
-                timeLastFrame = timeThisFrame;
-                timeSinceLastSecond += elapsedTime;
-                if (timeSinceLastSecond >= 1e3) {
-                    timeSinceLastSecond -= 1e3;
-                    frameRate = frameCountThisSecond;
-                    frameCountThisSecond = 0;
+        (function(global) {
+            var timeSinceLastSecond = frameCountThisSecond = frameRate = 0, timeLastFrame = global.Date.now();
+            module.exports = {
+                countFrame: function() {
+                    var timeThisFrame = global.Date.now(), elapsedTime = timeThisFrame - timeLastFrame;
+                    frameCountThisSecond += 1;
+                    timeLastFrame = timeThisFrame;
+                    timeSinceLastSecond += elapsedTime;
+                    if (timeSinceLastSecond >= 1e3) {
+                        timeSinceLastSecond -= 1e3;
+                        frameRate = frameCountThisSecond;
+                        frameCountThisSecond = 0;
+                    }
+                },
+                get frameRate() {
+                    return frameRate;
+                },
+                draw: function(ctx) {
+                    ctx.globalAlpha = .5;
+                    ctx.font = "30px Verdana";
+                    ctx.fillStyle = "#f55";
+                    ctx.textBaseline = "top";
+                    ctx.textAlign = "left";
+                    ctx.fillText(frameRate, 20, 50);
                 }
-            },
-            get frameRate() {
-                return frameRate;
-            },
-            draw: function(ctx) {
-                ctx.font = "30px Verdana";
-                ctx.fillStyle = "rgba(250, 50, 50, 0.5)";
-                ctx.fillText(frameRate, 20, 50);
-            }
-        };
+            };
+        }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {} ],
     48: [ function(require, module, exports) {
         var counter = 0;
@@ -6131,7 +6136,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         var $ = require("dragonjs");
         module.exports = $.Screen({
             name: "stage",
-            sprites: [ require("../sprites/fountain.js") ],
+            sprites: [ require("../sprites/fountain.js"), require("../sprites/burst.js") ],
             one: {
                 ready: function() {
                     this.start();
@@ -6145,23 +6150,40 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         });
     }, {
-        "../sprites/fountain.js": 55,
+        "../sprites/burst.js": 55,
+        "../sprites/fountain.js": 56,
         dragonjs: 17
     } ],
     55: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.particle.Emitter({
+            name: "burst",
+            type: $.particle.Square,
+            pos: $.canvas.center.subtract($.Point(120, 0)),
+            volume: 20,
+            speed: 1500,
+            particle: {
+                lifespan: 300,
+                style: function(ctx) {
+                    ctx.fillStyle = "red";
+                }
+            }
+        });
+    }, {
+        dragonjs: 17
+    } ],
+    56: [ function(require, module, exports) {
+        var $ = require("dragonjs");
+        module.exports = $.particle.Emitter({
             name: "fountain",
             type: $.particle.Square,
             pos: $.canvas.center.add($.Point(120, 0)),
-            speed: 4e3,
-            volume: 15,
             particle: {
                 style: function(ctx) {
                     ctx.fillStyle = "#3114eb";
                 },
-                gravity: .01,
-                lifespan: 300
+                gravity: .015,
+                lifespan: 400
             }
         });
     }, {
