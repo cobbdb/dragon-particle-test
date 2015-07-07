@@ -4424,20 +4424,21 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./image.js": 11
     } ],
     13: [ function(require, module, exports) {
-        var CollisionItem = require("./collision-item.js"), Point = require("./geom/point.js"), Vector = require("./geom/vector.js"), Dimension = require("./geom/dimension.js"), Rectangle = require("./geom/rectangle.js"), Util = require("./util/object.js");
+        var CollisionItem = require("./collision-item.js"), Point = require("./geom/point.js"), Vector = require("./geom/vector.js"), Dimension = require("./geom/dimension.js"), Rectangle = require("./geom/rectangle.js"), Obj = require("./util/object.js");
         module.exports = function(opts) {
             var pos = opts.pos || Point(), size = opts.size || Dimension(), scale = opts.scale || 1, adjsize = size.multiply(Dimension(scale, scale));
-            opts = Util.mergeDefaults(opts, {
+            opts = Obj.mergeDefaults(opts, {
                 name: "dragon-clear-sprite",
                 kind: "dragon-clear-sprite",
                 mask: Rectangle(),
                 updating: false,
-                drawing: false,
-                on: {}
+                drawing: false
             });
-            opts.on.ready = opts.on.ready || function() {
-                this.start();
-            };
+            opts.on = Obj.mergeDefaults(opts.on, {
+                $added: function() {
+                    this.start();
+                }
+            });
             if (!opts.freemask) {
                 opts.offset = opts.mask.pos();
                 opts.mask.move(pos.add(opts.offset));
@@ -4519,7 +4520,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                             item.removed = false;
                             this.set.push(item);
                             this.map[item.name] = item;
-                            item.trigger("ready");
+                            item.trigger("$added");
                         }, this);
                         this.set.sort(function(a, b) {
                             return a.depth - b.depth;
@@ -4602,19 +4603,19 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                                 if (intersects) {
                                     pivot.addCollision(other.id);
                                     if (!colliding) {
-                                        pivot.trigger("collide#" + other.name, other);
-                                        pivot.trigger("collide." + other.kind, other);
+                                        pivot.trigger("$collide#" + other.name, other);
+                                        pivot.trigger("$collide." + other.kind, other);
                                     }
-                                    pivot.trigger("colliding#" + other.name, other);
-                                    pivot.trigger("colliding." + other.kind, other);
+                                    pivot.trigger("$colliding#" + other.name, other);
+                                    pivot.trigger("$colliding." + other.kind, other);
                                 } else {
                                     pivot.removeCollision(other.id);
                                     if (colliding) {
-                                        pivot.trigger("separate#" + other.name, other);
-                                        pivot.trigger("separate." + other.kind, other);
+                                        pivot.trigger("$separate#" + other.name, other);
+                                        pivot.trigger("$separate." + other.kind, other);
                                     }
-                                    pivot.trigger("miss#" + other.name, other);
-                                    pivot.trigger("miss." + other.kind, other);
+                                    pivot.trigger("$miss#" + other.name, other);
+                                    pivot.trigger("$miss." + other.kind, other);
                                 }
                             }
                         });
@@ -5517,17 +5518,17 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 start: function() {
                     this.updating = true;
                     this.drawing = true;
-                    this.trigger("start");
+                    this.trigger("$start");
                 },
                 pause: function() {
                     this.updating = false;
                     this.drawing = true;
-                    this.trigger("pause");
+                    this.trigger("$pause");
                 },
                 stop: function() {
                     this.updating = false;
                     this.drawing = false;
-                    this.trigger("stop");
+                    this.trigger("$stop");
                 }
             }).implement(Eventable({
                 events: opts.on,
@@ -5627,7 +5628,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     on: {}
                 });
                 opts.lifespan += random() * 250;
-                opts.on.ready = function() {
+                opts.on.$added = function() {
                     this.start();
                     timer.setTimeout(function() {
                         fadeout = true;
@@ -6138,7 +6139,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             name: "stage",
             sprites: [ require("../sprites/fountain.js"), require("../sprites/burst.js") ],
             one: {
-                ready: function() {
+                $added: function() {
                     this.start();
                 }
             }

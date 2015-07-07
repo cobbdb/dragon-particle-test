@@ -11,7 +11,7 @@ module.exports = $.Screen({
         require('../sprites/burst.js')
     ],
     one: {
-        ready: function () {
+        $added: function () {
             this.start();
         }
     }
