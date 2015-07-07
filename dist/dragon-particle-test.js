@@ -4433,9 +4433,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 mask: Rectangle(),
                 updating: false,
                 drawing: false,
-                one: {}
+                on: {}
             });
-            opts.one.ready = opts.one.ready || function() {
+            opts.on.ready = opts.on.ready || function() {
                 this.start();
             };
             if (!opts.freemask) {
@@ -4559,11 +4559,14 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         }
                     }, this);
                     if (removed) {
-                        this.set = this.set.filter(function(item) {
-                            return !item.removed;
-                        });
+                        this.cleanup();
                         removed = false;
                     }
+                },
+                cleanup: function() {
+                    this.set = this.set.filter(function(item) {
+                        return !item.removed;
+                    });
                 }
             });
         };
@@ -5505,6 +5508,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 name: opts.name || "dragon-item",
                 kind: opts.kind || "dragon-item",
                 depth: 0,
+                removed: false,
                 updating: typeof opts.updating === "boolean" ? opts.updating : true,
                 drawing: typeof opts.drawing === "boolean" ? opts.drawing : true,
                 update: BaseClass.Stub,
@@ -5611,13 +5615,13 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         (function(global) {
             var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), Point = require("../geom/point.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Util = require("../util/object.js"), timer = require("../util/timer.js");
             module.exports = function(owner, opts) {
-                var fadeout = false, homePos = opts.pos;
+                var fadeout = false, startPos = opts.pos, startSpeed = Vector(random() - .5, random() - .5);
                 opts = Util.mergeDefaults(opts, {
                     name: "dragon-particle",
                     kind: "dragon-particle",
-                    speed: Vector(random() - .5, random() - .5),
                     size: Dimension(10, 10),
                     gravity: 0,
+                    speed: startSpeed.clone(),
                     lifespan: 1e3,
                     style: function() {},
                     on: {}
@@ -5625,20 +5629,18 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 opts.lifespan += random() * 150;
                 opts.on.ready = function() {
                     this.start();
+                    timer.setTimeout(function() {
+                        fadeout = true;
+                    }, opts.lifespan);
                 };
                 return ClearSprite(opts).extend({
-                    _create: function() {
-                        this.stop();
-                        timer.setTimeout(function() {
-                            fadeout = true;
-                        }, opts.lifespan);
-                    },
                     reset: function() {
                         this.stop();
                         fadeout = false;
                         this.alpha = 1;
                         this.rotation = 0;
-                        this.move(homePos);
+                        this.move(startPos);
+                        this.speed = startSpeed.clone();
                     },
                     rotSpeed: random() * .4 - .2,
                     gravity: opts.gravity,
@@ -6152,12 +6154,14 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             name: "fountain",
             type: $.particle.Square,
             pos: $.canvas.center.add($.Point(120, 0)),
+            speed: 4e3,
+            volume: 15,
             particle: {
                 style: function(ctx) {
                     ctx.fillStyle = "#3114eb";
                 },
-                gravity: .03,
-                volume: 8
+                gravity: .01,
+                lifespan: 300
             }
         });
     }, {

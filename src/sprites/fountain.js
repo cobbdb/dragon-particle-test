@@ -10,11 +10,13 @@ module.exports = $.particle.Emitter({
     pos: $.canvas.center.add(
         $.Point(120, 0)
     ),
+    speed: 4000,
+    volume: 15,
     particle: {
         style: function (ctx) {
             ctx.fillStyle = '#3114eb';
         },
-        gravity: 0.03,
-        volume: 8
+        gravity: 0.01,
+        lifespan: 300
     }
 });
