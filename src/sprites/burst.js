@@ -10,12 +10,12 @@ module.exports = $.particle.Emitter({
     pos: $.canvas.center.subtract(
         $.Point(120, 0)
     ),
-    volume: 20,
+    volume: 3,
     speed: 1500,
+    style: function (ctx) {
+        ctx.fillStyle = 'red';
+    },
     particle: {
-        lifespan: 300,
-        style: function (ctx) {
-            ctx.fillStyle = 'red';
-        }
+        lifespan: 1500
     }
 });

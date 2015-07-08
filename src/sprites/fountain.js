@@ -6,15 +6,14 @@ var $ = require('dragonjs');
  */
 module.exports = $.particle.Emitter({
     name: 'fountain',
-    type: $.particle.Square,
+    type: $.particle.Circle,
     pos: $.canvas.center.add(
         $.Point(120, 0)
     ),
+    style: function (ctx) {
+        ctx.fillStyle = '#3114eb';
+    },
     particle: {
-        style: function (ctx) {
-            ctx.fillStyle = '#3114eb';
-        },
-        gravity: 0.015,
-        lifespan: 400
+        gravity: 0.015
     }
 });
