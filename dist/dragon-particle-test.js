@@ -6014,24 +6014,24 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     }, {} ],
     50: [ function(require, module, exports) {
         (function(global) {
-            var i, key, PI = 3.14159, PI2 = 6.28318, sine = {}, cosine = {};
-            for (i = 0; i < PI2; i += .01) {
+            var i, key, sine = {}, cosine = {};
+            for (i = 0; i < 6.283; i += .01) {
                 key = i.toFixed(2);
                 sine[key] = global.Math.sin(i);
                 cosine[key] = global.Math.cos(i);
             }
             module.exports = {
-                PI: PI,
-                PI2: PI2,
+                PI: 3.14159,
+                PI2: 6.28318,
                 sin: function(theta) {
                     var key;
-                    theta %= PI2;
+                    theta %= this.PI2;
                     key = theta.toFixed(2);
                     return sine[key];
                 },
                 cos: function(theta) {
                     var key;
-                    theta %= PI2;
+                    theta %= this.PI2;
                     key = theta.toFixed(2);
                     return cosine[key];
                 }
@@ -6203,7 +6203,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         var $ = require("dragonjs");
         module.exports = $.Screen({
             name: "stage",
-            sprites: [ require("../sprites/fountain.js"), require("../sprites/burst.js") ],
+            sprites: [ require("../sprites/burst.js") ],
             one: {
                 $added: function() {
                     this.start();
@@ -6217,7 +6217,6 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         });
     }, {
         "../sprites/burst.js": 57,
-        "../sprites/fountain.js": 58,
         dragonjs: 17
     } ],
     57: [ function(require, module, exports) {
@@ -6233,22 +6232,6 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             },
             particle: {
                 lifespan: 1500
-            }
-        });
-    }, {
-        dragonjs: 17
-    } ],
-    58: [ function(require, module, exports) {
-        var $ = require("dragonjs");
-        module.exports = $.particle.Emitter({
-            name: "fountain",
-            type: $.particle.Circle,
-            pos: $.canvas.center.add($.Point(120, 0)),
-            style: function(ctx) {
-                ctx.fillStyle = "#3114eb";
-            },
-            particle: {
-                gravity: .015
             }
         });
     }, {
