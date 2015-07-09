@@ -2,20 +2,21 @@
 
 /**
  * @class Burst
- * @extends Dragon.Sprite
+ * @extends Dragon.Emitter
  */
 module.exports = $.particle.Emitter({
     name: 'burst',
     type: $.particle.Square,
-    pos: $.canvas.center.subtract(
-        $.Point(120, 0)
+    pos: $.canvas.center.add(
+        $.Point(-120, 50)
     ),
-    volume: 3,
+    volume: 5,
     speed: 1500,
     style: function (ctx) {
-        ctx.fillStyle = 'red';
+        ctx.fillStyle = '#b84760';
     },
     particle: {
+        friction: 0.98,
         lifespan: 1500
     }
 });

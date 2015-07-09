@@ -4133,7 +4133,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
 })({
     1: [ function(require, module, exports) {
         module.exports = {
-            img: [],
+            img: [ "dust.png" ],
             sound: [],
             font: []
         };
@@ -4233,10 +4233,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     }, {} ],
     8: [ function(require, module, exports) {
         (function(global) {
-            var Dimension = require("./geom/dimension.js"), Point = require("./geom/point.js"), pipeline = require("./assets/pipeline.js"), Util = require("./util/object.js");
+            var Dimension = require("./geom/dimension.js"), Point = require("./geom/point.js"), pipeline = require("./assets/pipeline.js"), Obj = require("./util/object.js");
             module.exports = function(src, opts) {
                 var img = pipeline.get.image(src), timeLastFrame, timeSinceLastFrame = 0, updating = false, firstFrame, direction = 1;
-                opts = Util.mergeDefaults(opts, {
+                opts = Obj.mergeDefaults(opts, {
                     kind: "dragon-animation-strip",
                     sinusoid: false,
                     start: Point(),
@@ -4284,15 +4284,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         }
                         return this.frame;
                     },
-                    draw: function(ctx, pos, scale, rotation) {
-                        var size = this.size(), offset = this.frame * size.width;
-                        scale = scale || Dimension(1, 1);
-                        rotation = rotation || 0;
-                        ctx.save();
-                        ctx.translate(pos.x + size.width / 2, pos.y + size.height / 2);
-                        ctx.rotate(rotation);
-                        ctx.drawImage(img, firstFrame.x + offset, firstFrame.y, size.width, size.height, -size.width / 2, -size.height / 2, size.width, size.height);
-                        ctx.restore();
+                    draw: function(ctx, size) {
+                        var offset = this.frame * size.width;
+                        ctx.drawImage(img, firstFrame.x + offset, firstFrame.y, this.size.width, this.size.height, -size.width / 2, -size.height / 2, size.width, size.height);
                     }
                 };
             };
@@ -4301,7 +4295,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./assets/pipeline.js": 12,
         "./geom/dimension.js": 22,
         "./geom/point.js": 23,
-        "./util/object.js": 51
+        "./util/object.js": 52
     } ],
     9: [ function(require, module, exports) {
         module.exports = function(url, onload) {
@@ -4418,13 +4412,13 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../../../../assets/directory.json": 1,
         "../game.js": 20,
         "../heartbeat.js": 29,
-        "../util/object.js": 51,
+        "../util/object.js": 52,
         "./audio.js": 9,
         "./font.js": 10,
         "./image.js": 11
     } ],
     13: [ function(require, module, exports) {
-        var CollisionItem = require("./collision-item.js"), Point = require("./geom/point.js"), Vector = require("./geom/vector.js"), Dimension = require("./geom/dimension.js"), Rectangle = require("./geom/rectangle.js"), Obj = require("./util/object.js");
+        var CollisionItem = require("./collision-item.js"), Point = require("./geom/point.js"), Vector = require("./geom/vector.js"), Dimension = require("./geom/dimension.js"), Rectangle = require("./geom/rectangle.js"), Obj = require("./util/object.js"), Num = require("./util/number.js");
         module.exports = function(opts) {
             var pos = opts.pos || Point(), size = opts.size || Dimension(), scale = opts.scale || 1, adjsize = size.multiply(Dimension(scale, scale));
             opts = Obj.mergeDefaults(opts, {
@@ -4440,6 +4434,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 }
             }
             return CollisionItem(opts).extend({
+                gravity: opts.gravity || 0,
+                friction: opts.friction || 1,
                 pos: pos,
                 alpha: opts.alpha || 1,
                 scale: function(newval) {
@@ -4467,25 +4463,33 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     }
                 },
                 rotation: opts.rotation || 0,
+                rotationSpeed: opts.rotationSpeed || 0,
                 speed: opts.speed || Vector(),
                 update: function() {
+                    this.rotation += this.rotationSpeed;
+                    this.rotation %= Num.PI2;
+                    this.speed.x *= this.friction;
+                    this.speed.y *= this.friction;
+                    this.speed.y += this.gravity;
                     if (!this.speed.is.zero) {
                         this.shift();
                     }
                     this.base.update();
                 },
                 draw: function(ctx) {
+                    var sin = Num.sin(this.rotation), cos = Num.cos(this.rotation);
                     ctx.globalAlpha = this.alpha;
+                    ctx.setTransform(cos, sin, -sin, cos, this.pos.x, this.pos.y);
+                    ctx.moveTo(adjsize.width, 0);
                 },
                 move: function(pos) {
-                    this.pos = this.pos.move(pos);
+                    this.pos.move(pos, true);
                     if (!opts.freemask) {
                         this.base.move(this.pos);
                     }
                 },
                 shift: function(offset) {
-                    var target = this.pos.add(offset || this.speed);
-                    this.move(target);
+                    this.move(this.pos.add(offset || this.speed));
                 }
             });
         };
@@ -4495,7 +4499,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./geom/point.js": 23,
         "./geom/rectangle.js": 25,
         "./geom/vector.js": 27,
-        "./util/object.js": 51
+        "./util/number.js": 51,
+        "./util/object.js": 52
     } ],
     14: [ function(require, module, exports) {
         var Item = require("./item.js"), Obj = require("./util/object.js");
@@ -4567,7 +4572,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         };
     }, {
         "./item.js": 35,
-        "./util/object.js": 51
+        "./util/object.js": 52
     } ],
     15: [ function(require, module, exports) {
         var Util = require("./util/object.js"), Item = require("./item.js");
@@ -4624,7 +4629,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         };
     }, {
         "./item.js": 35,
-        "./util/object.js": 51
+        "./util/object.js": 52
     } ],
     16: [ function(require, module, exports) {
         (function(global) {
@@ -4717,8 +4722,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./io/canvas.js": 32,
         "./io/mouse.js": 34,
         "./item.js": 35,
-        "./util/id-counter.js": 49,
-        "./util/object.js": 51
+        "./util/id-counter.js": 50,
+        "./util/object.js": 52
     } ],
     17: [ function(require, module, exports) {
         var Game = require("./game.js"), SetUtil = require("./util/set.js"), ObjUtil = require("./util/object.js"), heartbeat = require("./heartbeat.js"), pipeline = require("./assets/pipeline.js");
@@ -4766,7 +4771,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             particle: {
                 Emitter: require("./particle/emitter.js"),
                 Square: require("./particle/square.js"),
-                Circle: require("./particle/circle.js")
+                Circle: require("./particle/circle.js"),
+                Image: require("./particle/image.js")
             }
         };
     }, {
@@ -4792,17 +4798,18 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./io/mouse.js": 34,
         "./particle/circle.js": 40,
         "./particle/emitter.js": 41,
-        "./particle/square.js": 42,
-        "./screen.js": 43,
-        "./sprite.js": 44,
-        "./ui/button.js": 45,
-        "./ui/label.js": 46,
-        "./util/frame-counter.js": 48,
-        "./util/id-counter.js": 49,
-        "./util/object.js": 51,
-        "./util/random.js": 52,
-        "./util/set.js": 53,
-        "./util/timer.js": 54
+        "./particle/image.js": 42,
+        "./particle/square.js": 43,
+        "./screen.js": 44,
+        "./sprite.js": 45,
+        "./ui/button.js": 46,
+        "./ui/label.js": 47,
+        "./util/frame-counter.js": 49,
+        "./util/id-counter.js": 50,
+        "./util/object.js": 52,
+        "./util/random.js": 53,
+        "./util/set.js": 54,
+        "./util/timer.js": 55
     } ],
     18: [ function(require, module, exports) {
         var CollisionHandler = require("./collision-handler.js");
@@ -4887,12 +4894,12 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./dragon-collisions.js": 18,
         "./dragon-masks.js": 19,
         "./io/canvas.js": 32,
-        "./util/frame-counter.js": 48,
-        "./util/timer.js": 54
+        "./util/frame-counter.js": 49,
+        "./util/timer.js": 55
     } ],
     21: [ function(require, module, exports) {
         (function(global) {
-            var Shape = require("./shape.js"), Vector = require("./vector.js"), Point = require("./point.js"), Dimension = require("./dimension.js");
+            var Shape = require("./shape.js"), Vector = require("./vector.js"), Point = require("./point.js"), Dimension = require("./dimension.js"), Num = require("../util/number.js");
             module.exports = function(pos, rad) {
                 pos = pos || Point();
                 rad = rad || 0;
@@ -4928,7 +4935,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         ctx.lineWidth = 1;
                         ctx.globalAlpha = .5;
                         ctx.strokeStyle = "#f55";
-                        ctx.arc(this.x, this.y, this.radius, 0, 2 * global.Math.PI);
+                        ctx.arc(this.x, this.y, this.radius, 0, 2 * Num.PI);
                         ctx.stroke();
                     },
                     move: function(pos) {
@@ -4953,6 +4960,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             };
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
+        "../util/number.js": 51,
         "./dimension.js": 22,
         "./point.js": 23,
         "./shape.js": 26,
@@ -5075,31 +5083,32 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./zero.js": 28
     } ],
     24: [ function(require, module, exports) {
+        var Num = require("../util/number.js");
         function isEqual(my, other, tfactor, mfactor) {
-            var mag = my.magnitude === mfactor * other.magnitude, mytheta = (my.theta % Math.PI).toFixed(5), otheta = ((other.theta + tfactor) % Math.PI).toFixed(5);
+            var mag = my.magnitude === mfactor * other.magnitude, mytheta = (my.theta % Num.PI).toFixed(5), otheta = ((other.theta + tfactor) % Num.PI).toFixed(5);
             return mag && mytheta === otheta;
         }
-        function Polar(theta, mag) {
+        module.exports = function(theta, mag) {
             return {
                 theta: theta || 0,
                 magnitude: mag || 0,
                 invert: function() {
-                    return Polar(this.theta + Math.PI, this.magnitude * -1);
+                    return module.exports(this.theta + Num.PI, this.magnitude * -1);
                 },
                 clone: function() {
-                    return Polar(this.theta, this.magnitude);
+                    return module.exports(this.theta, this.magnitude);
                 },
                 toVector: function() {
                     var Vector = require("./vector.js");
-                    return Vector(this.magnitude * Math.cos(this.theta), this.magnitude * Math.sin(this.theta));
+                    return Vector(this.magnitude * Num.cos(this.theta), this.magnitude * Num.sin(this.theta));
                 },
                 equals: function(other) {
-                    return isEqual(this, other, 0, 1) || isEqual(this, other, Math.PI, -1);
+                    return isEqual(this, other, 0, 1) || isEqual(this, other, Num.PI, -1);
                 }
             };
-        }
-        module.exports = Polar;
+        };
     }, {
+        "../util/number.js": 51,
         "./vector.js": 27
     } ],
     25: [ function(require, module, exports) {
@@ -5198,53 +5207,56 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         baseclassjs: 3
     } ],
     27: [ function(require, module, exports) {
-        var ZERO = require("./zero.js");
-        module.exports = function(x, y) {
-            var self = {
-                x: x || 0,
-                y: y || 0,
-                get magnitude() {
-                    return Math.abs(Math.sqrt(this.y * this.y + this.x * this.x));
-                },
-                clone: function() {
-                    return module.exports(this.x, this.y);
-                },
-                equals: function(other) {
-                    return this.x === other.x && this.y === other.y;
-                },
-                is: {
-                    get zero() {
-                        return self.equals(ZERO);
+        (function(global) {
+            var ZERO = require("./zero.js"), Num = require("../util/number.js");
+            module.exports = function(x, y) {
+                var self = {
+                    x: x || 0,
+                    y: y || 0,
+                    get magnitude() {
+                        return Num.abs(global.Math.sqrt(this.y * this.y + this.x * this.x));
+                    },
+                    clone: function() {
+                        return module.exports(this.x, this.y);
+                    },
+                    equals: function(other) {
+                        return this.x === other.x && this.y === other.y;
+                    },
+                    is: {
+                        get zero() {
+                            return self.equals(ZERO);
+                        }
+                    },
+                    toPolar: function() {
+                        var Polar = require("./polar.js");
+                        return Polar(global.Math.atan(this.y / this.x), this.magnitude);
+                    },
+                    multiply: function(scale) {
+                        this.x *= scale.x;
+                        this.y *= scale.y;
+                        return this;
+                    },
+                    divide: function(scale) {
+                        this.x /= scale.x;
+                        this.y /= scale.y;
+                        return this;
+                    },
+                    add: function(scale) {
+                        this.x += scale.x;
+                        this.y += scale.y;
+                        return this;
+                    },
+                    subtract: function(scale) {
+                        this.x -= scale.x;
+                        this.y -= scale.y;
+                        return this;
                     }
-                },
-                toPolar: function() {
-                    var Polar = require("./polar.js");
-                    return Polar(Math.atan(this.y / this.x), this.magnitude);
-                },
-                multiply: function(scale) {
-                    this.x *= scale.x;
-                    this.y *= scale.y;
-                    return this;
-                },
-                divide: function(scale) {
-                    this.x /= scale.x;
-                    this.y /= scale.y;
-                    return this;
-                },
-                add: function(scale) {
-                    this.x += scale.x;
-                    this.y += scale.y;
-                    return this;
-                },
-                subtract: function(scale) {
-                    this.x -= scale.x;
-                    this.y -= scale.y;
-                    return this;
-                }
+                };
+                return self;
             };
-            return self;
-        };
+        }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
+        "../util/number.js": 51,
         "./polar.js": 24,
         "./zero.js": 28
     } ],
@@ -5281,7 +5293,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
         "./game.js": 20,
-        "./util/frame-counter.js": 48
+        "./util/frame-counter.js": 49
     } ],
     30: [ function(require, module, exports) {
         var BaseClass = require("baseclassjs");
@@ -5368,7 +5380,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../geom/dimension.js": 22,
         "../geom/point.js": 23,
         "../geom/rectangle.js": 25,
-        "../util/detect-mobile.js": 47
+        "../util/detect-mobile.js": 48
     } ],
     33: [ function(require, module, exports) {
         var nameMap = {
@@ -5517,7 +5529,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     }, {
         "../geom/point.js": 23,
         "../geom/vector.js": 27,
-        "../util/timer.js": 54,
+        "../util/timer.js": 55,
         "./canvas.js": 32
     } ],
     35: [ function(require, module, exports) {
@@ -5633,19 +5645,20 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     } ],
     39: [ function(require, module, exports) {
         (function(global) {
-            var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), Point = require("../geom/point.js"), canvas = require("../io/canvas.js"), random = require("../util/random.js"), Obj = require("../util/object.js"), Num = require("../util/number.js"), timer = require("../util/timer.js");
+            var ClearSprite = require("../clear-sprite.js"), Vector = require("../geom/vector.js"), Dimension = require("../geom/dimension.js"), Point = require("../geom/point.js"), random = require("../util/random.js"), Obj = require("../util/object.js"), timer = require("../util/timer.js");
             module.exports = function(owner, opts) {
-                var fadeout = false, startPos = opts.pos, startSpeed = Vector(random() - .5, random() - .5);
+                var fadeout = false, startPos = opts.pos, startSpeed;
                 opts = Obj.mergeDefaults(opts, {
                     name: "dragon-particle",
                     kind: "dragon-particle",
                     size: Dimension(4, 4),
-                    rotSpeed: random() * .4 - .2,
-                    gravity: 0,
-                    speed: startSpeed.clone(),
+                    rotationSpeed: random() * .4 - .2,
+                    speed: Vector(random() - .5, random() - .5),
                     lifespan: 1e3,
+                    style: function() {},
                     on: {}
                 });
+                startSpeed = opts.speed.clone();
                 opts.lifespan += random() * 250;
                 opts.on.$added = function() {
                     timer.setTimeout(function() {
@@ -5661,26 +5674,20 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                         this.speed = startSpeed.clone();
                     },
                     rotSpeed: opts.rotSpeed,
-                    gravity: opts.gravity,
                     update: function() {
                         if (this.alpha > 0) {
                             if (fadeout) {
                                 this.alpha -= .05;
                                 this.alpha = global.Math.max(0, this.alpha);
                             }
-                            this.rotation += this.rotSpeed;
-                            this.rotation %= Num.PI2;
-                            this.speed.y += this.gravity;
                         } else {
                             owner.reclaim(this);
                         }
                         this.base.update();
                     },
                     draw: function(ctx) {
-                        var sin = Num.sin(this.rotation), cos = Num.cos(this.rotation);
                         this.base.draw(ctx);
-                        ctx.setTransform(cos, sin, -sin, cos, this.pos.x, this.pos.y);
-                        ctx.moveTo(this.size().width, 0);
+                        opts.style(ctx);
                     }
                 });
             };
@@ -5690,11 +5697,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../geom/dimension.js": 22,
         "../geom/point.js": 23,
         "../geom/vector.js": 27,
-        "../io/canvas.js": 32,
-        "../util/number.js": 50,
-        "../util/object.js": 51,
-        "../util/random.js": 52,
-        "../util/timer.js": 54
+        "../util/object.js": 52,
+        "../util/random.js": 53,
+        "../util/timer.js": 55
     } ],
     40: [ function(require, module, exports) {
         var Particle = require("./base.js"), Obj = require("../util/object.js"), Num = require("../util/number.js");
@@ -5711,8 +5716,8 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             });
         };
     }, {
-        "../util/number.js": 50,
-        "../util/object.js": 51,
+        "../util/number.js": 51,
+        "../util/object.js": 52,
         "./base.js": 39
     } ],
     41: [ function(require, module, exports) {
@@ -5766,10 +5771,29 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../collection.js": 14,
         "../geom/point.js": 23,
         "../io/canvas.js": 32,
-        "../util/object.js": 51,
-        "../util/timer.js": 54
+        "../util/object.js": 52,
+        "../util/timer.js": 55
     } ],
     42: [ function(require, module, exports) {
+        var Particle = require("./base.js"), Obj = require("../util/object.js"), pipeline = require("../assets/pipeline.js");
+        module.exports = function(owner, opts) {
+            var img = pipeline.get.image(opts.src);
+            opts = Obj.mergeDefaults(opts, {
+                name: "dragon-particle-image"
+            });
+            return Particle(owner, opts).extend({
+                draw: function(ctx) {
+                    this.base.draw(ctx);
+                    ctx.drawImage(img, -this.size().width / 2, -this.size().height / 2, this.size().width, this.size().height);
+                }
+            });
+        };
+    }, {
+        "../assets/pipeline.js": 12,
+        "../util/object.js": 52,
+        "./base.js": 39
+    } ],
+    43: [ function(require, module, exports) {
         var Particle = require("./base.js"), Obj = require("../util/object.js");
         module.exports = function(owner, opts) {
             opts = Obj.mergeDefaults(opts, {
@@ -5783,10 +5807,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             });
         };
     }, {
-        "../util/object.js": 51,
+        "../util/object.js": 52,
         "./base.js": 39
     } ],
-    43: [ function(require, module, exports) {
+    44: [ function(require, module, exports) {
         var Collection = require("./collection.js"), Obj = require("./util/object.js"), Game = require("./game.js");
         module.exports = function(opts) {
             var collisions = Collection().add(opts.collisions);
@@ -5846,9 +5870,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
     }, {
         "./collection.js": 14,
         "./game.js": 20,
-        "./util/object.js": 51
+        "./util/object.js": 52
     } ],
-    44: [ function(require, module, exports) {
+    45: [ function(require, module, exports) {
         (function(global) {
             var ClearSprite = require("./clear-sprite.js"), Dimension = require("./geom/dimension.js"), AnimationStrip = require("./animation-strip.js"), Util = require("./util/object.js");
             module.exports = function(opts) {
@@ -5902,7 +5926,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     },
                     draw: function(ctx) {
                         this.base.draw(ctx);
-                        this.strip.draw(ctx, this.pos, Dimension(this.size().width / this.strip.size.width, this.size().height / this.strip.size.height), this.rotation);
+                        this.strip.draw(ctx, this.size());
                     }
                 });
             };
@@ -5911,9 +5935,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "./animation-strip.js": 8,
         "./clear-sprite.js": 13,
         "./geom/dimension.js": 22,
-        "./util/object.js": 51
+        "./util/object.js": 52
     } ],
-    45: [ function(require, module, exports) {
+    46: [ function(require, module, exports) {
         var Sprite = require("../sprite.js"), Rectangle = require("../geom/rectangle.js"), Point = require("../geom/point.js"), Util = require("../util/object.js");
         module.exports = function(opts) {
             opts = Util.mergeDefaults(opts, {
@@ -5941,10 +5965,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         "../dragon-collisions.js": 18,
         "../geom/point.js": 23,
         "../geom/rectangle.js": 25,
-        "../sprite.js": 44,
-        "../util/object.js": 51
+        "../sprite.js": 45,
+        "../util/object.js": 52
     } ],
-    46: [ function(require, module, exports) {
+    47: [ function(require, module, exports) {
         var ClearSprite = require("../clear-sprite.js"), Util = require("../util/object.js");
         module.exports = function(opts) {
             opts = Util.mergeDefaults(opts, {
@@ -5963,19 +5987,19 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         };
     }, {
         "../clear-sprite.js": 13,
-        "../util/object.js": 51
+        "../util/object.js": 52
     } ],
-    47: [ function(require, module, exports) {
+    48: [ function(require, module, exports) {
         module.exports = "ontouchstart" in window;
     }, {} ],
-    48: [ function(require, module, exports) {
+    49: [ function(require, module, exports) {
         (function(global) {
             var timer = require("./timer.js"), hash, frameRate = frameCount = 0;
             hash = timer.setInterval(function(over) {
-                var time = 500 + over;
+                var time = 1e3 + over;
                 frameRate = global.Math.floor(frameCount * 1e3 / time);
                 frameCount = 0;
-            }, 500);
+            }, 1e3);
             module.exports = {
                 countFrame: function() {
                     frameCount += 1;
@@ -5998,9 +6022,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             };
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
-        "./timer.js": 54
+        "./timer.js": 55
     } ],
-    49: [ function(require, module, exports) {
+    50: [ function(require, module, exports) {
         var counter = 0;
         module.exports = {
             get lastId() {
@@ -6012,10 +6036,10 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         };
     }, {} ],
-    50: [ function(require, module, exports) {
+    51: [ function(require, module, exports) {
         (function(global) {
             var i, key, sine = {}, cosine = {};
-            for (i = 0; i < 6.283; i += .01) {
+            for (i = 6.28; i >= -6.28; i -= .01) {
                 key = i.toFixed(2);
                 sine[key] = global.Math.sin(i);
                 cosine[key] = global.Math.cos(i);
@@ -6034,11 +6058,14 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     theta %= this.PI2;
                     key = theta.toFixed(2);
                     return cosine[key];
+                },
+                abs: function(num) {
+                    return num < 0 ? -num : num;
                 }
             };
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {} ],
-    51: [ function(require, module, exports) {
+    52: [ function(require, module, exports) {
         (function(global) {
             module.exports = {
                 cloneArray: function(arr) {
@@ -6092,7 +6119,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             };
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {} ],
-    52: [ function(require, module, exports) {
+    53: [ function(require, module, exports) {
         (function(global) {
             var i, len = 200, set = [], curr = 0;
             for (i = 0; i < len; i += 1) {
@@ -6105,7 +6132,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             };
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {} ],
-    53: [ function(require, module, exports) {
+    54: [ function(require, module, exports) {
         var random = require("./random.js");
         module.exports = {
             shuffle: function(arr) {
@@ -6132,9 +6159,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         };
     }, {
-        "./random.js": 52
+        "./random.js": 53
     } ],
-    54: [ function(require, module, exports) {
+    55: [ function(require, module, exports) {
         (function(global) {
             var Item = require("../item.js"), Counter = require("./id-counter.js"), timeLastUpdate = global.Date.now(), clearSet = {}, timeouts = [], timeoutsToAdd = [], intervals = [], intervalsToAdd = [];
             module.exports = Item().extend({
@@ -6187,23 +6214,23 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         }).call(this, typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {});
     }, {
         "../item.js": 35,
-        "./id-counter.js": 49
+        "./id-counter.js": 50
     } ],
-    55: [ function(require, module, exports) {
+    56: [ function(require, module, exports) {
         var $ = require("dragonjs");
         $.loadAssets(function() {
             $.debug();
             $.addScreens([ require("./screens/stage.js") ]);
         });
     }, {
-        "./screens/stage.js": 56,
+        "./screens/stage.js": 57,
         dragonjs: 17
     } ],
-    56: [ function(require, module, exports) {
+    57: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.Screen({
             name: "stage",
-            sprites: [ require("../sprites/burst.js") ],
+            sprites: [ require("../sprites/fountain.js"), require("../sprites/burst.js"), require("../sprites/dust.js") ],
             one: {
                 $added: function() {
                     this.start();
@@ -6216,25 +6243,64 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         });
     }, {
-        "../sprites/burst.js": 57,
+        "../sprites/burst.js": 58,
+        "../sprites/dust.js": 59,
+        "../sprites/fountain.js": 60,
         dragonjs: 17
     } ],
-    57: [ function(require, module, exports) {
+    58: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.particle.Emitter({
             name: "burst",
             type: $.particle.Square,
-            pos: $.canvas.center.subtract($.Point(120, 0)),
-            volume: 3,
+            pos: $.canvas.center.add($.Point(-120, 50)),
+            volume: 5,
             speed: 1500,
             style: function(ctx) {
-                ctx.fillStyle = "red";
+                ctx.fillStyle = "#b84760";
             },
             particle: {
+                friction: .98,
                 lifespan: 1500
             }
         });
     }, {
         dragonjs: 17
+    } ],
+    59: [ function(require, module, exports) {
+        var $ = require("dragonjs");
+        module.exports = $.particle.Emitter({
+            name: "dust",
+            type: $.particle.Image,
+            pos: $.canvas.center.add($.Point(0, -50)),
+            volume: 1,
+            speed: 400,
+            particle: {
+                rotationSpeed: 0,
+                friction: .99,
+                src: "dust.png",
+                size: $.Dimension(12, 12),
+                lifespan: 1e3
+            }
+        });
+    }, {
+        dragonjs: 17
+    } ],
+    60: [ function(require, module, exports) {
+        var $ = require("dragonjs");
+        module.exports = $.particle.Emitter({
+            name: "fountain",
+            type: $.particle.Circle,
+            pos: $.canvas.center.add($.Point(120, 50)),
+            style: function(ctx) {
+                ctx.fillStyle = "#3114eb";
+            },
+            particle: {
+                gravity: .015,
+                friction: .99
+            }
+        });
+    }, {
+        dragonjs: 17
     } ]
-}, {}, [ 55 ]);
+}, {}, [ 56 ]);

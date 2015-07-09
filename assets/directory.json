@@ -1,5 +1,7 @@
 {
-  "img": [],
+  "img": [
+    "dust.png"
+  ],
   "sound": [],
   "font": []
 }
