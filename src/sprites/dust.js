@@ -6,17 +6,24 @@
  */
 module.exports = $.particle.Emitter({
     name: 'dust',
-    type: $.particle.Image,
+    type: require('./dust-particle.js'),
     pos: $.canvas.center.add(
         $.Point(0, -50)
     ),
-    volume: 1,
-    speed: 400,
-    particle: {
-        rotationSpeed: 0,
-        friction: 0.99,
-        src: 'dust.png',
-        size: $.Dimension(12, 12),
-        lifespan: 1000
+    volume: 2,
+    speed: 800,
+    conf: function () {
+        return {
+            rotationSpeed: 0,
+            friction: 0.025,
+            src: 'dust.png',
+            size: $.Dimension(12, 4),
+            lifespan: 800,
+            fade: 0.01,
+            speed: $.Vector(
+                ($.random() - 0.5) * 0.8,
+                -0.1
+            )
+        };
     }
 });

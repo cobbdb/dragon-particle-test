@@ -13,8 +13,10 @@ module.exports = $.particle.Emitter({
     style: function (ctx) {
         ctx.fillStyle = '#3114eb';
     },
-    particle: {
-        gravity: 0.015,
-        friction: 0.99
+    conf: function () {
+        return {
+            gravity: 0.015,
+            friction: 0.01
+        };
     }
 });
