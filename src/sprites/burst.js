@@ -17,12 +17,11 @@ module.exports = $.particle.Emitter({
     },
     conf: function () {
         return {
-            size: $.Dimension(10, 10),
-            friction: 0.02,
+            friction: 0.06,
             lifespan: 1500,
             speed: $.Vector(
-                ($.random() - 0.5) * 2,
-                ($.random() - 0.5) * 2
+                ($.random() - 0.5) * 6,
+                ($.random() - 0.5) * 6
             )
         };
     }

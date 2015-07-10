@@ -8,8 +8,8 @@ module.exports = $.Screen({
     name: 'stage',
     sprites: [
         require('../sprites/fountain.js'),
-        require('../sprites/burst.js'),
-        require('../sprites/dust.js')
+        //require('../sprites/burst.js'),
+        //require('../sprites/dust.js')
     ],
     one: {
         $added: function () {
