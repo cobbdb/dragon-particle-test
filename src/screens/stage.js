@@ -8,8 +8,8 @@ module.exports = $.Screen({
     name: 'stage',
     sprites: [
         require('../sprites/fountain.js'),
-        //require('../sprites/burst.js'),
-        //require('../sprites/dust.js')
+        require('../sprites/burst.js'),
+        require('../sprites/dust.js')
     ],
     one: {
         $added: function () {
@@ -18,10 +18,7 @@ module.exports = $.Screen({
     }
 }).extend({
     draw: function (ctx) {
-        ctx.clearRect(0, 0,
-            $.canvas.width,
-            $.canvas.height
-        );
+        $.canvas.clear();
         this.base.draw(ctx);
     }
 });

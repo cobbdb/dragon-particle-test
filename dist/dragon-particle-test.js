@@ -4554,7 +4554,6 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     this.set.forEach(function(item) {
                         if (this.drawing && item.drawing && !item.removed) {
                             ctx.globalAlpha = 1;
-                            ctx.resetTransform();
                             item.draw(ctx);
                         }
                     }, this);
@@ -5374,6 +5373,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     canvas.ctx.setTransform(1, 0, 0, 1, 0, 0);
                 };
             }
+            canvas.clear = function() {
+                canvas.ctx.clearRect(0, 0, canvas.width, canvas.height);
+            };
             canvas.mask = Rectangle(Point(0, 0), Dimension(canvas.width, canvas.height));
             canvas.center = Point(canvas.width / 2, canvas.height / 2);
             global.Cocoon.Utils.setAntialias(false);
@@ -5660,8 +5662,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                     speed: Vector(random() - .5, random() - .5),
                     lifespan: 1e3,
                     style: function() {},
-                    fade: .05,
-                    on: {}
+                    fade: .05
                 });
                 startSpeed = opts.speed.clone();
                 opts.lifespan += random() * 250;
@@ -5723,7 +5724,9 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             return Particle(opts).extend({
                 draw: function(ctx) {
                     this.base.draw(ctx);
+                    ctx.beginPath();
                     ctx.arc(0, 0, this.size().width / 2, 0, Num.PI2);
+                    ctx.fill();
                 }
             });
         };
@@ -5774,9 +5777,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
                 },
                 draw: function(ctx) {
                     opts.style(ctx);
-                    ctx.beginPath();
                     this.base.draw(ctx);
-                    ctx.fill();
                 },
                 kill: function() {
                     timer.clear(hash);
@@ -6257,7 +6258,7 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
         var $ = require("dragonjs");
         module.exports = $.Screen({
             name: "stage",
-            sprites: [ require("../sprites/fountain.js") ],
+            sprites: [ require("../sprites/fountain.js"), require("../sprites/burst.js"), require("../sprites/dust.js") ],
             one: {
                 $added: function() {
                     this.start();
@@ -6265,15 +6266,80 @@ Cocoon.define("Cocoon.Multiplayer", function(extension) {
             }
         }).extend({
             draw: function(ctx) {
-                ctx.clearRect(0, 0, $.canvas.width, $.canvas.height);
+                $.canvas.clear();
                 this.base.draw(ctx);
             }
         });
     }, {
-        "../sprites/fountain.js": 58,
+        "../sprites/burst.js": 58,
+        "../sprites/dust.js": 60,
+        "../sprites/fountain.js": 61,
         dragonjs: 17
     } ],
     58: [ function(require, module, exports) {
+        var $ = require("dragonjs");
+        module.exports = $.particle.Emitter({
+            name: "burst",
+            type: $.particle.Square,
+            pos: $.canvas.center.add($.Point(-120, 50)),
+            volume: 5,
+            speed: 2e3,
+            style: function(ctx) {
+                ctx.fillStyle = "#b84760";
+            },
+            conf: function() {
+                return {
+                    friction: .06,
+                    lifespan: 1500,
+                    speed: $.Vector(($.random() - .5) * 6, ($.random() - .5) * 6)
+                };
+            }
+        });
+    }, {
+        dragonjs: 17
+    } ],
+    59: [ function(require, module, exports) {
+        var $ = require("dragonjs");
+        module.exports = function(opts) {
+            return $.particle.Image(opts).extend({
+                update: function() {
+                    this.base.update();
+                    this.scale(this.scale() + .015);
+                },
+                reset: function() {
+                    this.base.reset();
+                    this.scale(1);
+                }
+            });
+        };
+    }, {
+        dragonjs: 17
+    } ],
+    60: [ function(require, module, exports) {
+        var $ = require("dragonjs");
+        module.exports = $.particle.Emitter({
+            name: "dust",
+            type: require("./dust-particle.js"),
+            pos: $.canvas.center.add($.Point(0, -50)),
+            volume: 2,
+            speed: 800,
+            conf: function() {
+                return {
+                    rotationSpeed: 0,
+                    friction: .025,
+                    src: "dust.png",
+                    size: $.Dimension(12, 4),
+                    lifespan: 800,
+                    fade: .01,
+                    speed: $.Vector(($.random() - .5) * .8, -.1)
+                };
+            }
+        });
+    }, {
+        "./dust-particle.js": 59,
+        dragonjs: 17
+    } ],
+    61: [ function(require, module, exports) {
         var $ = require("dragonjs");
         module.exports = $.particle.Emitter({
             name: "fountain",
