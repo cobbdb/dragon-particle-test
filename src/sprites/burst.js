@@ -10,7 +10,7 @@ module.exports = $.particle.Emitter({
     pos: $.canvas.center.add(
         $.Point(-120, 50)
     ),
-    volume: 5,
+    volume: 8,
     speed: 2000,
     style: function (ctx) {
         ctx.fillStyle = '#b84760';
